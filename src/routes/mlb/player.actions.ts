@@ -3,15 +3,28 @@ import wrapAsync from "../../lib/requestHandler/wrapAsync";
 import queryChecker from "../../lib/checker/query";
 import { CrollFailedError } from "../../errors/ActionFailedError";
 import { PlayerNotFoundError } from "../../errors/NotFoundError";
+import Player from "../../models/Player";
 
 export const getPlayer = wrapAsync(async (req, res) => {
   const { player } = queryChecker(["player"], req.params);
-
+  const PlayerData = await Player.findOne({
+    id: player
+  });
+  if (PlayerData) {
+    res.json(PlayerData);
+    return;
+  }
   try {
     const req = await axios.get(
-      `https://statsapi.mlb.com/api/v1/people/${player}?hydrate=currentTeam,team,stats(type=[yearByYear,yearByYearAdvanced,careerRegularSeason,careerAdvanced,availableStats](team(league)),leagueListId=mlb_hist)&site=en`
+      `https://statsapi.mlb.com/api/v1/people/${player}?hydrate=awards,currentTeam,team,stats(type=[yearByYear,yearByYearAdvanced,careerRegularSeason,careerAdvanced,availableStats](team(league)),leagueListId=mlb_hist)&site=en`
     );
-    res.json(req.data);
+    const p = new Player({
+      id: req.data.people[0].id,
+      player: req.data.people[0]
+    });
+    await p.save();
+
+    res.json(p);
   } catch (e) {
     if (e.response && e.response.status === 404) {
       throw PlayerNotFoundError;
