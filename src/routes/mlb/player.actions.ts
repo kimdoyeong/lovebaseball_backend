@@ -1,7 +1,10 @@
 import axios from "axios";
 import wrapAsync from "../../lib/requestHandler/wrapAsync";
 import queryChecker from "../../lib/checker/query";
-import { CrollFailedError } from "../../errors/ActionFailedError";
+import {
+  CrollFailedError,
+  SearchFailedError
+} from "../../errors/ActionFailedError";
 import { PlayerNotFoundError } from "../../errors/NotFoundError";
 import Player from "../../models/Player";
 
@@ -31,5 +34,41 @@ export const getPlayer = wrapAsync(async (req, res) => {
     }
     console.error(e.stack);
     throw CrollFailedError;
+  }
+});
+
+export const searchPlayer = wrapAsync(async (req, res) => {
+  const { name } = queryChecker(["name"], req.query);
+  console.log(name);
+  function mapper(data: string) {
+    const [
+      position,
+      code,
+      firstName,
+      lastName,
+      tmp1,
+      tmp2,
+      tmp3,
+      tmp4,
+      fullName
+    ] = data.split("|");
+    return {
+      code,
+      firstName,
+      lastName,
+      fullName
+    };
+  }
+
+  try {
+    const mlb_req = await axios.get(
+      `https://suggest.mlb.com/svc/suggest/v1/min_all/${name}/99999`
+    );
+    res.json({
+      result: mlb_req.data.suggestions.map(mapper)
+    });
+  } catch (e) {
+    console.error(e.stack);
+    throw SearchFailedError;
   }
 });

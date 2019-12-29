@@ -9,6 +9,8 @@ const ErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     message = err.message || message;
     status = err.status || status;
     code = err.code;
+  } else {
+    console.error(err.stack);
   }
 
   res.status(status);
